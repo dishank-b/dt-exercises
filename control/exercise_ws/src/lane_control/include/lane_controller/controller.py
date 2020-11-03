@@ -28,7 +28,7 @@ class PurePursuitLaneController:
 
         if d_err > L_d:
             L_d = d_err + 0.05
-        omega = -2.0*np.sin(np.arcsin(d_err/L_d)+phi)/k
+        omega = -np.sin(np.arcsin(d_err/L_d)+phi)/k
 
         return v, omega
 

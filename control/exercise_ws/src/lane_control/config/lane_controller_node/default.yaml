@@ -3,7 +3,7 @@
 ## ADD CONFIGS HERE
 
 v: 0.2
-L_d: 0.2
-k: 1.0
-d_offset: 0.0
+L_d: 0.25
+k: 0.4   # default: 0.5                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+d_offset: 0.0 
 omega_ff: 0
