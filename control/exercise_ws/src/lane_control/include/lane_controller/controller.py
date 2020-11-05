@@ -25,12 +25,18 @@ class PurePursuitLaneController:
         L_d = self.parameters["~L_d"].value
         v = self.parameters["~v"].value
         k = self.parameters["~k"].value
+        v_min = self.parameters["~v_min"].value
 
         if d_err > L_d:
             L_d = d_err + 0.05
-        omega = -np.sin(np.arcsin(d_err/L_d)+phi)/k
+        
+        if abs(phi)>0.5:
+            v = v_min
 
-        return v, omega
+        alpha = np.arcsin(d_err/L_d)+phi
+        omega = -np.sin(alpha)/k
+
+        return v, omega, alpha
 
     def update_parameters(self, parameters):
         """Updates parameters of LaneController object.

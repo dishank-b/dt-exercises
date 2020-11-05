@@ -50,6 +50,12 @@ class LaneControllerNode(DTROS):
             min_value=0.0,
             max_value=10.0
         )
+        self.params['~v_min'] = DTParam(
+            '~v_min',
+            param_type=ParamType.FLOAT,
+            min_value=0.0,
+            max_value=0.5
+        )
         self.params['~d_offset'] = rospy.get_param('~d_offset', None)
         self.params['~omega_ff'] = rospy.get_param('~omega_ff', None)
 
@@ -111,9 +117,9 @@ class LaneControllerNode(DTROS):
 
         rospy.loginfo("d: {}, phi:{}".format(d_err, phi))
 
-        v, omega = self.pp_controller.compute_control_action(d_err, phi)
+        v, omega, alpha = self.pp_controller.compute_control_action(d_err, phi)
 
-        rospy.loginfo("Velocity: {}, Omega:{}".format(v, omega))
+        rospy.loginfo("Velocity: {}, Omega:{}, alpha: {}".format(v, omega, alpha))
 
         # For feedforward action (i.e. during intersection navigation)
         omega += self.params['~omega_ff']

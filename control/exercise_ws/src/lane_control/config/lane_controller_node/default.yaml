@@ -3,7 +3,10 @@
 ## ADD CONFIGS HERE
 
 v: 0.2
-L_d: 0.25
-k: 0.4   # default: 0.5                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+v_min: 0.15
+L_d: 0.2
+k: 0.5 # default: L/2v                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
 d_offset: 0.0 
 omega_ff: 0
+
+# 0.3 is okay V for 0.15 L. Not more than that for this L
