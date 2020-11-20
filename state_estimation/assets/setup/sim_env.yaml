@@ -12,4 +12,3 @@ AIDONODE_CONFIG: |
     domain_rand: False
     distortion: True
     map_name: loop_empty
-
