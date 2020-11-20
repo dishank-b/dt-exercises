@@ -5,8 +5,7 @@
 v: 0.2
 v_min: 0.15
 L_d: 0.2
-k: 0.5 # default: L/2v                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
+L_max: 0.3
+k: 0.3 # default: L/2v                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
 d_offset: 0.0 
 omega_ff: 0
-
-# 0.3 is okay V for 0.15 L. Not more than that for this L

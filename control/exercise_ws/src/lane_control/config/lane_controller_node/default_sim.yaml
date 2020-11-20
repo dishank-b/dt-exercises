@@ -2,9 +2,10 @@
 
 ## ADD CONFIGS HERE
 
-v: 0.3
-v_min: 0.15
+v: 0.25
+v_min: 0.10
 L_d: 0.2
+L_max: 0.3
 k: 0.2 # default: L/2v                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
 d_offset: 0.0 
 omega_ff: 0

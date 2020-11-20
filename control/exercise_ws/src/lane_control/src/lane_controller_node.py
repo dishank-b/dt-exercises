@@ -38,6 +38,14 @@ class LaneControllerNode(DTROS):
             min_value=0.0,
             max_value=0.5
         )
+
+        self.params['~L_max'] = DTParam(
+            '~L_max',
+            param_type=ParamType.FLOAT,
+            min_value=0.0,
+            max_value=0.5
+        )
+
         self.params['~v'] = DTParam(
             '~v',
             param_type=ParamType.FLOAT,
