@@ -24,6 +24,10 @@ class LaneFilterHistogramKF():
             'mean_phi_0',
             'sigma_d_0',
             'sigma_phi_0',
+            'sigma_d_pro',
+            'sigma_phi_pro',
+            'sigma_d_measure',
+            'sigma_phi_measure',
             'delta_d',
             'delta_phi',
             'd_max',
@@ -49,6 +53,9 @@ class LaneFilterHistogramKF():
         self.mean_0 = [self.mean_d_0, self.mean_phi_0]
         self.cov_0 = [[self.sigma_d_0, 0], [0, self.sigma_phi_0]]
 
+        self.Q = [[self.sigma_d_pro**2, 0],[0, self.sigma_phi_pro**2]]
+        self.R = [[self.sigma_d_measure**2, 0],[0, self.sigma_phi_measure**2]]
+
         self.belief = {'mean': self.mean_0, 'covariance': self.cov_0}
 
         self.encoder_resolution = 0
@@ -59,6 +66,16 @@ class LaneFilterHistogramKF():
         #TODO update self.belief based on right and left encoder data + kinematics
         if not self.initialized:
             return
+        v_l = left_encoder_delta/self.encoder_resolution/dt*self.wheel_radius
+        v_r = right_encoder_delta/self.encoder_resolution/dt*self.wheel_radius
+        v_t = (v_l+v_r)/2.0
+        omega_t = (v_r-v_l)/self.baseline_dist
+
+        d, phi = self.belief.mean
+        F = np.array([[1.0, v_t*dt*np.cos(phi)],[0.0, 1.0]])
+
+        self.belief.mean = np.array([self.belief.mean[0]+v_t*dt*np.sin(phi), phi+omega_t*dt])
+        self.belief.covariance = F@self.belief.covariance@F.T + self.Q
 
     def update(self, segments):
         # prepare the segments for each belief array
@@ -68,10 +85,17 @@ class LaneFilterHistogramKF():
         measurement_likelihood = self.generate_measurement_likelihood(
             segmentsArray)
 
-        # TODO: Parameterize the measurement likelihood as a Gaussian
+        maxids = np.unravel_index(
+                measurement_likelihood.argmax(), self.belief.shape)
+        z_d = self.d_min + (maxids[0] + 0.5) * self.delta_d
+        z_phi = self.phi_min + (maxids[1] + 0.5) * self.delta_phi
 
-        # TODO: Apply the update equations for the Kalman Filter to self.belief
+        z = np.array([z_d, z_phi])
+        
+        K = np.matmul(self.belief.covariance, np.linalf.inv(self.belief.covariance+self.R))
 
+        self.belief.mean += np.matmul(K, z-self.belief.mean)
+        self.belief.covariance = np.matmul(self.belief.covariance, 1.0-K)
 
     def getEstimate(self):
         return self.belief
@@ -106,10 +130,6 @@ class LaneFilterHistogramKF():
         measurement_likelihood = measurement_likelihood / \
             np.sum(measurement_likelihood)
         return measurement_likelihood
-
-
-
-
 
     # generate a vote for one segment
     def generateVote(self, segment):
