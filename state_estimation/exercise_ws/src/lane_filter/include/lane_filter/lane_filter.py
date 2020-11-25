@@ -50,16 +50,17 @@ class LaneFilterHistogramKF():
             assert p_name in kwargs
             setattr(self, p_name, kwargs[p_name])
 
-        self.mean_0 = [self.mean_d_0, self.mean_phi_0]
-        self.cov_0 = [[self.sigma_d_0, 0], [0, self.sigma_phi_0]]
+        self.mean_0 = np.array([self.mean_d_0, self.mean_phi_0])
+        self.cov_0 = np.array([[self.sigma_d_0, 0.0], [0.0, self.sigma_phi_0]])
 
-        self.Q = [[self.sigma_d_pro**2, 0],[0, self.sigma_phi_pro**2]]
-        self.R = [[self.sigma_d_measure**2, 0],[0, self.sigma_phi_measure**2]]
+        self.Q = np.array([[self.sigma_d_pro**2, 0.0],[0.0, self.sigma_phi_pro**2]])
+        self.R = np.array([[self.sigma_d_measure**2, 0.0],[0.0, self.sigma_phi_measure**2]])
 
         self.belief = {'mean': self.mean_0, 'covariance': self.cov_0}
 
-        self.encoder_resolution = 0
+        self.encoder_resolution = 0.0
         self.wheel_radius = 0.0
+        self.baseline = 0.0
         self.initialized = False
 
     def predict(self, dt, left_encoder_delta, right_encoder_delta):
@@ -69,16 +70,16 @@ class LaneFilterHistogramKF():
         v_l = left_encoder_delta/self.encoder_resolution/dt*self.wheel_radius
         v_r = right_encoder_delta/self.encoder_resolution/dt*self.wheel_radius
         v_t = (v_l+v_r)/2.0
-        omega_t = (v_r-v_l)/self.baseline_dist
+        omega_t = (v_r-v_l)/self.baseline
 
-        d, phi = self.belief.mean
+        d, phi = self.belief['mean']
         F = np.array([[1.0, v_t*dt*np.cos(phi)],[0.0, 1.0]])
 
-        self.belief.mean = np.array([self.belief.mean[0]+v_t*dt*np.sin(phi), phi+omega_t*dt])
-        self.belief.covariance = F@self.belief.covariance@F.T + self.Q
+        self.belief['mean'] = np.array([self.belief['mean'][0]+v_t*dt*np.sin(phi), phi+omega_t*dt])
+        self.belief['covariance'] = F@self.belief['covariance']@F.T + self.Q
 
     def update(self, segments):
-        # prepare the segments for each belief array
+        # prepare the segments for each belief array    
         segmentsArray = self.prepareSegments(segments)
         # generate all belief arrays
 
@@ -86,16 +87,16 @@ class LaneFilterHistogramKF():
             segmentsArray)
 
         maxids = np.unravel_index(
-                measurement_likelihood.argmax(), self.belief.shape)
+                measurement_likelihood.argmax(), measurement_likelihood.shape)
         z_d = self.d_min + (maxids[0] + 0.5) * self.delta_d
         z_phi = self.phi_min + (maxids[1] + 0.5) * self.delta_phi
 
-        z = np.array([z_d, z_phi])
-        
-        K = np.matmul(self.belief.covariance, np.linalf.inv(self.belief.covariance+self.R))
+        z = np.array([z_d, z_phi], dtype=np.float)
 
-        self.belief.mean += np.matmul(K, z-self.belief.mean)
-        self.belief.covariance = np.matmul(self.belief.covariance, 1.0-K)
+        K = np.matmul(self.belief['covariance'], np.linalg.inv(self.belief['covariance']+self.R))
+
+        self.belief['mean'] += np.matmul(K, z-self.belief['mean'])
+        self.belief['covariance'] = np.matmul(self.belief['covariance'], 1.0-K)
 
     def getEstimate(self):
         return self.belief
