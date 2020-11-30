@@ -72,16 +72,21 @@ class LaneFilterHistogramKF():
         #TODO update self.belief based on right and left encoder data + kinematics
         if not self.initialized:
             return
-        v_l = left_encoder_delta/self.encoder_resolution/dt*self.wheel_radius
-        v_r = right_encoder_delta/self.encoder_resolution/dt*self.wheel_radius
+        v_l = (left_encoder_delta*2*np.pi/(self.encoder_resolution*dt))*self.wheel_radius
+        v_r = (right_encoder_delta*2*np.pi/(self.encoder_resolution*dt))*self.wheel_radius
+        
         v_t = (v_l+v_r)/2.0
         omega_t = (v_r-v_l)/self.baseline
 
         d, phi = self.belief['mean']
         F = np.array([[1.0, v_t*dt*np.cos(phi)],[0.0, 1.0]])
 
-        self.belief['mean'] = np.array([self.belief['mean'][0]+v_t*dt*np.sin(phi), phi+omega_t*dt])
-        self.belief['covariance'] = F@self.belief['covariance']@F.T + self.Q
+        self.belief['mean'] = np.array([ d + v_t*dt*np.sin(phi), phi+omega_t*dt])
+        self.belief['covariance'] = np.matmul(np.matmul(F ,self.belief['covariance']), F.T) + self.Q
+
+        print("Predicted State - ")
+        print("v: {}, w: {}".format(v_t, omega_t))
+        self.printState()
 
     def update(self, segments):
         # prepare the segments for each belief array    
@@ -91,20 +96,37 @@ class LaneFilterHistogramKF():
         measurement_likelihood = self.generate_measurement_likelihood(
             segmentsArray)
 
+        if isinstance(measurement_likelihood, type(None)):
+            return
+
+        # measurement
         maxids = np.unravel_index(
                 measurement_likelihood.argmax(), measurement_likelihood.shape)
         z_d = self.d_min + (maxids[0] + 0.5) * self.delta_d
         z_phi = self.phi_min + (maxids[1] + 0.5) * self.delta_phi
-
         z = np.array([z_d, z_phi], dtype=np.float)
 
-        K = np.matmul(self.belief['covariance'], np.linalg.inv(self.belief['covariance']+self.R))
+        print("Measurement-")
+        print("d: {}, phi: {}".format(z_d, z_phi))
 
-        self.belief['mean'] += np.matmul(K, z-self.belief['mean'])
-        self.belief['covariance'] = np.matmul(self.belief['covariance'], 1.0-K)
+        #update
+        x_hat = self.belief['mean']
+        p_hat = self.belief['covariance']
+
+        K = np.matmul(p_hat, np.linalg.inv(p_hat+self.R))
+
+        self.belief['mean'] = x_hat + np.matmul(K, z-x_hat)
+        self.belief['covariance'] = np.matmul(np.eye(2)-K, p_hat)
+        
+        print("Updated State - ")
+        self.printState()
 
     def getEstimate(self):
         return self.belief
+
+    def printState(self):
+        print("d: {}, phi: {}".format(self.belief["mean"][0], self.belief["mean"][1]))
+        print("Covariance Matrix: ", self.belief["covariance"])
 
     def generate_measurement_likelihood(self, segments):
 

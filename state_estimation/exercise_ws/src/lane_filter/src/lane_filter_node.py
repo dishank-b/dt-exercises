@@ -49,6 +49,8 @@ class LaneFilterNode(DTROS):
         self._debug = rospy.get_param('~debug', False)
         self._predict_freq = rospy.get_param('~predict_frequency', 30.0)
 
+        print(self._filter)
+
         # Create the filter
         self.filter = LaneFilterHistogramKF(**self._filter)
         self.t_last_update = rospy.get_time()
@@ -56,6 +58,7 @@ class LaneFilterNode(DTROS):
 
         self.filter.wheel_radius = rospy.get_param(f"/{veh}/kinematics_node/radius")
         self.filter.baseline = rospy.get_param(f"/{veh}/kinematics_node/baseline")
+
 
         # Subscribers
         self.sub_segment_list = rospy.Subscriber("~segment_list",
