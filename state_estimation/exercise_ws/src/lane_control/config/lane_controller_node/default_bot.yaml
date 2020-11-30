@@ -1,0 +1,12 @@
+#lane_control/lane_controller_node
+
+## ADD CONFIGS HERE
+
+v_max: 0.6
+v_min: 0.2
+L_d: 0.2
+L_max: 0.4
+k: 0.3 # default: L/2v  
+phi_max: 0.6                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+d_offset: 0.0 
+omega_ff: 0
