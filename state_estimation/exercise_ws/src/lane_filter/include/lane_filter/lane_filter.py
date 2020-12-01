@@ -85,7 +85,7 @@ class LaneFilterHistogramKF():
         self.belief['covariance'] = np.matmul(np.matmul(F ,self.belief['covariance']), F.T) + self.Q
 
         print("Predicted State - ")
-        print("v: {}, w: {}".format(v_t, omega_t))
+        # print("v: {}, w: {}".format(v_t, omega_t))
         self.printState()
 
     def update(self, segments):
@@ -98,22 +98,31 @@ class LaneFilterHistogramKF():
 
         if isinstance(measurement_likelihood, type(None)):
             return
+        
+        # # Calcualting these just to compare. But these are not used in update
+        # maxids = np.unravel_index(
+        # measurement_likelihood.argmax(), measurement_likelihood.shape)
+        # d_max = self.d_min + (maxids[0] + 0.5) * self.delta_d
+        # phi_max = self.phi_min + (maxids[1] + 0.5) * self.delta_phi
+        
+        # Measure
 
-        # measurement
-        maxids = np.unravel_index(
-                measurement_likelihood.argmax(), measurement_likelihood.shape)
-        z_d = self.d_min + (maxids[0] + 0.5) * self.delta_d
-        z_phi = self.phi_min + (maxids[1] + 0.5) * self.delta_phi
+        z_d, z_phi, d_std, phi_std = self.get_mean_var(measurement_likelihood)
+        # z_d, z_phi, d_std, phi_std = self.get_mean_var_diff(measurement_likelihood)
+        
         z = np.array([z_d, z_phi], dtype=np.float)
+        R =  np.diag([d_std**2, phi_std**2]) + 1e-6
 
         print("Measurement-")
         print("d: {}, phi: {}".format(z_d, z_phi))
+        print("Cov: ", R)
+        # print("d_max {}, phi_max: {}".format(d_max, phi_max))
 
-        #update
+        # Update
         x_hat = self.belief['mean']
         p_hat = self.belief['covariance']
 
-        K = np.matmul(p_hat, np.linalg.inv(p_hat+self.R))
+        K = np.matmul(p_hat, np.linalg.inv(p_hat+R))
 
         self.belief['mean'] = x_hat + np.matmul(K, z-x_hat)
         self.belief['covariance'] = np.matmul(np.eye(2)-K, p_hat)
@@ -126,7 +135,7 @@ class LaneFilterHistogramKF():
 
     def printState(self):
         print("d: {}, phi: {}".format(self.belief["mean"][0], self.belief["mean"][1]))
-        print("Covariance Matrix: ", self.belief["covariance"])
+        print("Cov: ", self.belief["covariance"])
 
     def generate_measurement_likelihood(self, segments):
 
@@ -156,8 +165,67 @@ class LaneFilterHistogramKF():
         # lastly normalize so that we have a valid probability density function
 
         measurement_likelihood = measurement_likelihood / \
-            np.sum(measurement_likelihood)
+            np.sum(measurement_likelihood)  
         return measurement_likelihood
+
+    def get_mean_var(self, measurement_likelihood):
+        ids = np.unravel_index(
+            measurement_likelihood.argsort(axis=None)[-25:][::-1], measurement_likelihood.shape)
+        d_max, phi_max = ids[0][0], ids[1][0]
+        # print(d_max, phi_max)
+
+        ds = []
+        phis= []
+        weights = []
+
+        for i, j in zip(ids[0], ids[1]):
+            if measurement_likelihood[i,j]>0 and abs(i-d_max)<=2 and abs(j-phi_max)<=2:
+                ds.append(i)
+                phis.append(j)
+                weights.append(measurement_likelihood[i,j])
+
+        # print(ds, phis)
+        
+        ds = np.array([self.d_min + (i + 0.5) * self.delta_d for i in ds])
+        phis = np.array([self.phi_min + (j + 0.5) * self.delta_phi for j in phis])
+
+        d_mean = np.average(ds, weights=weights)
+        d_std = np.sqrt(np.average((ds-d_mean)**2, weights=weights))
+        phi_mean = np.average(phis, weights=weights)
+        phi_std = np.sqrt(np.average((phis-phi_mean)**2, weights=weights))
+
+        return d_mean, phi_mean, d_std, phi_std
+
+    def get_mean_var_diff(self, measurement_likelihood):
+        maxids = np.unravel_index(
+                measurement_likelihood.argmax(), measurement_likelihood.shape)
+        d_max, phi_max = maxids[0], maxids[1]
+        # print(d_max, phi_max)
+
+        ds = []
+        phis= []
+        weights = []
+
+        for i in range(d_max-2, d_max+3):
+            for j in range(phi_max-2, phi_max+3):
+                if measurement_likelihood[i,j]>0:
+                    ds.append(i)
+                    phis.append(j)
+                    weights.append(measurement_likelihood[i,j])
+        
+        # print(ds, phis)
+        
+        ds = np.array([self.d_min + (i + 0.5) * self.delta_d for i in ds])
+        phis = np.array([self.phi_min + (j + 0.5) * self.delta_phi for j in phis])
+
+        d_mean = np.average(ds, weights=weights)
+        d_std = np.sqrt(np.average((ds-d_mean)**2, weights=weights))
+        phi_mean = np.average(phis, weights=weights)
+        phi_std = np.sqrt(np.average((phis-phi_mean)**2, weights=weights))
+
+        return d_mean, phi_mean, d_std, phi_std
+
+
 
     # generate a vote for one segment
     def generateVote(self, segment):
