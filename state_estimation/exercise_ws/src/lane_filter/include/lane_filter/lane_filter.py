@@ -111,7 +111,7 @@ class LaneFilterHistogramKF():
         # z_d, z_phi, d_std, phi_std = self.get_mean_var_diff(measurement_likelihood)
         
         z = np.array([z_d, z_phi], dtype=np.float)
-        R =  np.diag([d_std**2, phi_std**2]) + 1e-6
+        R =  np.diag([d_std**2, phi_std**2]) + np.array([[1e-7, 2e-7],[5e-7, 6e-7]])
 
         print("Measurement-")
         print("d: {}, phi: {}".format(z_d, z_phi))
@@ -168,37 +168,38 @@ class LaneFilterHistogramKF():
             np.sum(measurement_likelihood)  
         return measurement_likelihood
 
-    def get_mean_var(self, measurement_likelihood):
-        ids = np.unravel_index(
-            measurement_likelihood.argsort(axis=None)[-25:][::-1], measurement_likelihood.shape)
-        d_max, phi_max = ids[0][0], ids[1][0]
-        # print(d_max, phi_max)
+    # def get_mean_var_diff(self, measurement_likelihood):
+    #     ids = np.unravel_index(
+    #         measurement_likelihood.argsort(axis=None)[-25:][::-1], measurement_likelihood.shape)
+    #     d_max, phi_max = ids[0][0], ids[1][0]
+    #     # print(d_max, phi_max)
 
-        ds = []
-        phis= []
-        weights = []
+    #     ds = []
+    #     phis= []
+    #     weights = []
 
-        for i, j in zip(ids[0], ids[1]):
-            if measurement_likelihood[i,j]>0 and abs(i-d_max)<=2 and abs(j-phi_max)<=2:
-                ds.append(i)
-                phis.append(j)
-                weights.append(measurement_likelihood[i,j])
+    #     for i, j in zip(ids[0], ids[1]):
+    #         if measurement_likelihood[i,j]>0 and abs(i-d_max)<=2 and abs(j-phi_max)<=2:
+    #             ds.append(i)
+    #             phis.append(j)
+    #             weights.append(measurement_likelihood[i,j])
 
-        # print(ds, phis)
+    #     # print(ds, phis)
         
-        ds = np.array([self.d_min + (i + 0.5) * self.delta_d for i in ds])
-        phis = np.array([self.phi_min + (j + 0.5) * self.delta_phi for j in phis])
+    #     ds = np.array([self.d_min + (i + 0.5) * self.delta_d for i in ds])
+    #     phis = np.array([self.phi_min + (j + 0.5) * self.delta_phi for j in phis])
 
-        d_mean = np.average(ds, weights=weights)
-        d_std = np.sqrt(np.average((ds-d_mean)**2, weights=weights))
-        phi_mean = np.average(phis, weights=weights)
-        phi_std = np.sqrt(np.average((phis-phi_mean)**2, weights=weights))
+    #     d_mean = np.average(ds, weights=weights)
+    #     d_std = np.sqrt(np.average((ds-d_mean)**2, weights=weights))
+    #     phi_mean = np.average(phis, weights=weights)
+    #     phi_std = np.sqrt(np.average((phis-phi_mean)**2, weights=weights))
 
-        return d_mean, phi_mean, d_std, phi_std
+    #     return d_mean, phi_mean, d_std, phi_std
 
-    def get_mean_var_diff(self, measurement_likelihood):
+    def get_mean_var(self, measurement_likelihood):
+        shape = measurement_likelihood.shape
         maxids = np.unravel_index(
-                measurement_likelihood.argmax(), measurement_likelihood.shape)
+                measurement_likelihood.argmax(), shape)
         d_max, phi_max = maxids[0], maxids[1]
         # print(d_max, phi_max)
 
@@ -206,8 +207,8 @@ class LaneFilterHistogramKF():
         phis= []
         weights = []
 
-        for i in range(d_max-2, d_max+3):
-            for j in range(phi_max-2, phi_max+3):
+        for i in range(max(d_max-2,0), min(d_max+3,shape[0])):
+            for j in range(max(phi_max-2,0), min(phi_max+3,shape[1])):
                 if measurement_likelihood[i,j]>0:
                     ds.append(i)
                     phis.append(j)

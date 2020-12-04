@@ -2,10 +2,25 @@
 
 ## ADD CONFIGS HERE
 
-v: 0.2
-v_min: 0.15
-L_d: 0.2
+#Param for sim
+
+v_max: 1.0
+v_min: 0.2
+L_d: 0.25
 L_max: 0.3
-k: 0.3 # default: L/2v                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
+k: 0.4 # default: L/2v  
+phi_max: 0.6                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
 d_offset: 0.0 
 omega_ff: 0
+
+
+# Parameters for bot
+
+# v_max: 0.6
+# v_min: 0.2
+# L_d: 0.2
+# L_max: 0.4
+# k: 0.3 # default: L/2v  
+# phi_max: 0.6                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+# d_offset: 0.0 
+# omega_ff: 0

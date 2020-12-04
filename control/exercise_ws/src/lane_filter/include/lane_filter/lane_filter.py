@@ -94,7 +94,7 @@ class LaneFilterHistogram():
 
 
     def initialize(self):
-        pos = np.empty(self.d.shape + (2,)) # pos.shape = (d.shape[0],d.shape[1], 2)
+        pos = np.empty(self.d.shape + (2,))
         pos[:, :, 0] = self.d
         pos[:, :, 1] = self.phi
         RV = multivariate_normal(self.mean_0, self.cov_0)

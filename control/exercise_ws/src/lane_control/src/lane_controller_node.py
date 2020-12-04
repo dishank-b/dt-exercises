@@ -46,24 +46,34 @@ class LaneControllerNode(DTROS):
             max_value=0.5
         )
 
-        self.params['~v'] = DTParam(
-            '~v',
+        self.params['~v_max'] = DTParam(
+            '~v_max',
             param_type=ParamType.FLOAT,
             min_value=0.05,
             max_value=1.0
         )
+
+        self.params['~v_min'] = DTParam(
+            '~v_min',
+            param_type=ParamType.FLOAT,
+            min_value=0.05,
+            max_value=1.0
+        )
+
         self.params['~k'] = DTParam(
             '~k',
             param_type=ParamType.FLOAT,
             min_value=0.0,
             max_value=10.0
         )
-        self.params['~v_min'] = DTParam(
-            '~v_min',
+
+        self.params['~phi_max'] = DTParam(
+            '~phi_max',
             param_type=ParamType.FLOAT,
             min_value=0.0,
-            max_value=0.5
+            max_value=10.0
         )
+
         self.params['~d_offset'] = rospy.get_param('~d_offset', None)
         self.params['~omega_ff'] = rospy.get_param('~omega_ff', None)
 
@@ -83,6 +93,7 @@ class LaneControllerNode(DTROS):
 
         self.last_s = None
 
+        print(self.params)
         self.log("Initialized!")
 
     def cbLanePoses(self, input_pose_msg):
@@ -95,8 +106,6 @@ class LaneControllerNode(DTROS):
 
         car_control_msg = Twist2DStamped()
         car_control_msg.header = self.pose_msg.header
-
-        # TODO This needs to get changed
         
         vel, omega = self.getControlAction(self.pose_msg)
 
@@ -123,11 +132,11 @@ class LaneControllerNode(DTROS):
         d_err = pose_msg.d - self.params['~d_offset']
         phi = pose_msg.phi
 
-        rospy.loginfo("d: {}, phi:{}".format(d_err, phi))
+        # rospy.loginfo("d: {}, phi:{}".format(d_err, phi))
 
         v, omega, alpha = self.pp_controller.compute_control_action(d_err, phi)
 
-        rospy.loginfo("Velocity: {}, Omega:{}, alpha: {}".format(v, omega, alpha))
+        # rospy.loginfo("Velocity: {}, Omega:{}, alpha: {}".format(v, omega, alpha))
 
         # For feedforward action (i.e. during intersection navigation)
         omega += self.params['~omega_ff']
