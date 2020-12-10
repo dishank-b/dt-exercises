@@ -4,9 +4,9 @@
 
 #Param for sim
 
-v_max: 1.0
+v_max: 0.98
 v_min: 0.2
-L_d: 0.25
+L_d: 0.2
 L_max: 0.3
 k: 0.4 # default: L/2v  
 phi_max: 0.6                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     

@@ -136,7 +136,7 @@ class LaneControllerNode(DTROS):
 
         v, omega, alpha = self.pp_controller.compute_control_action(d_err, phi)
 
-        # rospy.loginfo("Velocity: {}, Omega:{}, alpha: {}".format(v, omega, alpha))
+        rospy.loginfo("Velocity: {}, Omega:{}, alpha: {}".format(v, omega, alpha))
 
         # For feedforward action (i.e. during intersection navigation)
         omega += self.params['~omega_ff']
