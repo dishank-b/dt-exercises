@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import numpy as np
 import rospy
+import warnings
 
 from duckietown.dtros import DTROS, NodeType, TopicType, DTParam, ParamType
 from duckietown_msgs.msg import Twist2DStamped, LanePose, WheelsCmdStamped, BoolStamped, FSMState, StopLineReading
@@ -32,8 +33,8 @@ class LaneControllerNode(DTROS):
 
         # Add the node parameters to the parameters dictionary
         self.params = dict()
-        self.params['~L_d'] = DTParam(
-            '~L_d',
+        self.params['~L_min'] = DTParam(
+            '~L_min',
             param_type=ParamType.FLOAT,
             min_value=0.0,
             max_value=0.5
@@ -132,11 +133,24 @@ class LaneControllerNode(DTROS):
         d_err = pose_msg.d - self.params['~d_offset']
         phi = pose_msg.phi
 
-        # rospy.loginfo("d: {}, phi:{}".format(d_err, phi))
+        if np.isnan(phi) or np.isnan(d_err):
+            warnings.warn("Phi or d is nan.")
+            print("...............................................................................................................................................", 
+            "...............................................................................................................................................",
+            "...............................................................................................................................................")
+  
+        if np.isnan(phi):
+            phi=0.0
 
         v, omega, alpha = self.pp_controller.compute_control_action(d_err, phi)
 
         rospy.loginfo("Velocity: {}, Omega:{}, alpha: {}".format(v, omega, alpha))
+
+        if np.isnan(omega) or np.isnan(v):
+            warnings.warn("v or Omega is nan.")
+            print("...............................................................................................................................................", 
+            "...............................................................................................................................................",
+            "...............................................................................................................................................")
 
         # For feedforward action (i.e. during intersection navigation)
         omega += self.params['~omega_ff']

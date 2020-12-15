@@ -4,11 +4,11 @@
 
 #Param for sim
 
-v_max: 0.98
+v_max: 0.8
 v_min: 0.2
-L_d: 0.2
+L_min: 0.2
 L_max: 0.3
-k: 0.4 # default: L/2v  
+k: 0.3 # default: L/2v  
 phi_max: 0.6                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
 d_offset: 0.0 
 omega_ff: 0

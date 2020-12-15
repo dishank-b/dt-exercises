@@ -22,26 +22,22 @@ class PurePursuitLaneController:
         self.parameters = parameters
 
     def compute_control_action(self, d_err, phi):
-        L_d = self.parameters["~L_d"].value
-        # L_max = self.parameters["~L_max"].value                                                                                  
+        L_min = self.parameters["~L_min"].value
+        L_max = self.parameters["~L_max"].value                                                                                  
         v_max = self.parameters["~v_max"].value
         v_min = self.parameters["~v_min"].value
         k = self.parameters["~k"].value
         phi_max = self.parameters["~phi_max"].value
 
-        # if abs(phi)< 0.2:
-        #     L_d = L_max
-
         v = v_max + (v_min-v_max)*abs(phi)/phi_max
+        L_d = L_max + (L_min-L_max)*abs(phi)/phi_max
 
-        if v < v_min:
+        if abs(phi) > phi_max:
             v = v_min
+            L_d = L_min
             
         if d_err > L_d:
             L_d = d_err + 0.05
-        
-        # if abs(phi)>0.5:
-        #     v = v_min
 
         alpha = np.arcsin(d_err/L_d)+phi
         omega = -np.sin(alpha)/k

@@ -226,8 +226,6 @@ class LaneFilterHistogramKF():
 
         return d_mean, phi_mean, d_std, phi_std
 
-
-
     # generate a vote for one segment
     def generateVote(self, segment):
         p1 = np.array([segment.points[0].x, segment.points[0].y])
