@@ -21,8 +21,6 @@ class ObjectDetectionNode(DTROS):
             node_type=NodeType.PERCEPTION
         )
 
-
-
         # Construct publishers
         self.pub_obj_dets = rospy.Publisher(
             "~duckie_detected",
