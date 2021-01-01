@@ -2,8 +2,8 @@
 
 DATASET:
   NAME: "DuckieDataset"
-  PATH: "../dataset/sim_data"
-  # PATH: "../dataset/real_data"
+  # PATH: "../dataset/sim_data"
+  PATH: "../dataset/real_data"
   LENGTH: 7500
 
 ARCHITECTURE:
@@ -13,14 +13,14 @@ BACKBONE:
   MODEL_NAME: 'resnet18'
   
 LOGS:
-  BASE_PATH: "../exercise_ws/src/object_detection/include/object_detection/weights"
+  BASE_PATH: "../exercise_ws/src/object_detection/include/weights"
 
 SEED: 5
 USE_CUDA: True
 
 TRAIN:
-  BATCH_SIZE: 16
-  EPOCHS: 80
+  BATCH_SIZE: 1
+  EPOCHS: 50
   LR: 1e-3
   LR_DECAY: 0.2
   MOMENTUM: 0.9
@@ -32,8 +32,14 @@ TRAIN:
 ANCHORS:
   ANCHOR_SCALES: [32, 64, 128]
 
-# RPN:
-#   POST_NMS_TOPK_TEST: 50
+RPN:
+  POST_NMS_TOPK_TEST: 50
+
+INPUT:
+  # LABELS_TO_TRAIN: ['Duckie', 'Cone', 'Truck', 'Bus']
+  # NUM_CLASSES: 4
+  LABELS_TO_TRAIN: ['Duckie', 'Cone']
+  NUM_CLASSES: 2
 
 ROI_HEADS:
   LOSS_TYPE: "deterministic"

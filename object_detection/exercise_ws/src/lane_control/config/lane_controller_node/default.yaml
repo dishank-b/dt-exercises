@@ -1,0 +1,14 @@
+#lane_control/lane_controller_node
+
+## ADD CONFIGS HERE
+
+#Param for sim
+
+v_max: 0.3
+v_min: 0.2
+L_min: 0.20
+L_max: 0.25
+k: 0.2 # default: L/2v  
+phi_max: 0.6                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+d_offset: 0.0 
+omega_ff: 0

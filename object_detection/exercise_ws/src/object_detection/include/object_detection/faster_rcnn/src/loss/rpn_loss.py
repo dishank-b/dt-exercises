@@ -5,7 +5,6 @@ Compute loss for Region proposal networks(Not supported for RetinaNet yet)
 import torch
 import torch.nn.functional as F
 import sys
-from src.config import Cfg as cfg
 
 
 def smooth_l1_loss(input, target, beta: float, reduction: str = "none"):

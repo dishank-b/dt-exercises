@@ -2,18 +2,64 @@
 import numpy as np
 import rospy
 import rospkg
+import yaml
+from PIL import Image as PIL_Image, ImageDraw
 
 from duckietown.dtros import DTROS, NodeType, TopicType, DTParam, ParamType
-from sensor_msgs.msg import CompressedImage, Image
-from duckietown_msgs.msg import Twist2DStamped, LanePose, WheelsCmdStamped, BoolStamped, FSMState, StopLineReading, AntiInstagramThresholds
+from sensor_msgs.msg import CompressedImage, Image, CameraInfo
+from duckietown_msgs.msg import Twist2DStamped, LanePose, WheelsCmdStamped, BoolStamped, FSMState, StopLineReading, AntiInstagramThresholds, Vector2D
+
 from image_processing.anti_instagram import AntiInstagram
+from image_processing.ground_projection_geometry import Point, GroundProjectionGeometry
+from image_processing.rectification import Rectify
+
+from image_geometry import PinholeCameraModel
+
+import os
 import cv2
 from object_detection.model import Wrapper
 from cv_bridge import CvBridge
 
+def load_extrinsics():
+    """
+    Loads the homography matrix from the extrinsic calibration file.
+
+    Returns:
+        :obj:`numpy array`: the loaded homography matrix
+
+    """
+    # load intrinsic calibration
+    cali_file_folder = '/data/config/calibrations/camera_extrinsic/'
+    cali_file = cali_file_folder + rospy.get_namespace().strip("/") + ".yaml"
+
+    # Locate calibration yaml file or use the default otherwise
+    if not os.path.isfile(cali_file):
+        rospy.logwarn("Can't find calibration file: %s.\n Using default calibration instead."
+                    % cali_file)
+        cali_file = (cali_file_folder + "default.yaml")
+
+    # Shutdown if no calibration file not found
+    if not os.path.isfile(cali_file):
+        msg = 'Found no calibration file ... aborting'
+        rospy.logerr(msg)
+        rospy.signal_shutdown(msg)
+
+    try:
+        with open(cali_file,'r') as stream:
+            calib_data = yaml.load(stream)
+    except yaml.YAMLError:
+        msg = 'Error in parsing calibration file %s ... aborting' % cali_file
+        rospy.logerr(msg)
+        rospy.signal_shutdown(msg)
+
+    return calib_data['homography']
+
 class ObjectDetectionNode(DTROS):
 
     def __init__(self, node_name):
+        
+        self.initialized = False
+        veh = os.getenv("VEHICLE_NAME")
 
         # Initialize the DTROS parent class
         super(ObjectDetectionNode, self).__init__(
@@ -25,6 +71,13 @@ class ObjectDetectionNode(DTROS):
         self.pub_obj_dets = rospy.Publisher(
             "~duckie_detected",
             BoolStamped,
+            queue_size=1,
+            dt_topic_type=TopicType.PERCEPTION
+        )
+
+        self.image_publish = rospy.Publisher(
+            "~duckie_image",
+            Image,
             queue_size=1,
             dt_topic_type=TopicType.PERCEPTION
         )
@@ -44,16 +97,32 @@ class ObjectDetectionNode(DTROS):
             self.thresholds_cb,
             queue_size=1
         )
-        
+
+        self.sub_camera_info = rospy.Subscriber(
+            f"/{veh}/camera_node/camera_info", 
+            CameraInfo, 
+            self.cb_camera_info, 
+            queue_size=5
+        )
+
         self.ai_thresholds_received = False
         self.anti_instagram_thresholds=dict()
         self.ai = AntiInstagram()
         self.bridge = CvBridge()
 
+        self.camera_info_received = False
+        self.homography = load_extrinsics()
+        self.img_size = None
+
         model_file = rospy.get_param('~model_file','.')
+        config_file = rospy.get_param('~config_file', '.')
+        self.safe_distance = rospy.get_param('~safe_distance')
+
         rospack = rospkg.RosPack()
         model_file_absolute = rospack.get_path('object_detection') + model_file
-        self.model_wrapper = Wrapper(model_file_absolute)
+        config_file_absolute = rospack.get_path('object_detection') + config_file
+
+        self.model_wrapper = Wrapper(model_file_absolute, config_file_absolute)
         self.initialized = True
         self.log("Initialized!")
     
@@ -62,65 +131,101 @@ class ObjectDetectionNode(DTROS):
         self.anti_instagram_thresholds["higher"] = thresh_msg.high
         self.ai_thresholds_received = True
 
+    def cb_camera_info(self, msg):
+        """
+        Initializes a :py:class:`image_processing.GroundProjectionGeometry` object and a
+        :py:class:`image_processing.Rectify` object for image rectification
+
+        Args:
+            msg (:obj:`sensor_msgs.msg.CameraInfo`): Intrinsic properties of the camera.
+
+        """
+
+        if not self.camera_info_received:
+            self.rectifier = Rectify(msg)
+            self.ground_projector = GroundProjectionGeometry(im_width=msg.width,
+                                                            im_height=msg.height,
+                                                            homography=np.array(self.homography).reshape((3, 3)))
+        self.camera_info_received=True
+
     def image_cb(self, image_msg):
-        if not self.initialized:
+        if not self.initialized or not self.camera_info_received:
             return
 
-        # TODO to get better hz, you might want to only call your wrapper's predict function only once ever 4-5 images?
-        # This way, you're not calling the model again for two practically identical images. Experiment to find a good number of skipped
-        # images.
-
+        # self.image_publish.publish(image_msg)
         # Decode from compressed image with OpenCV
         try:
-            image = self.bridge.compressed_imgmsg_to_cv2(image_msg)
+            image = self.bridge.compressed_imgmsg_to_cv2(image_msg, desired_encoding="rgb8")
         except ValueError as e:
             self.logerr('Could not decode image: %s' % e)
             return
         
         # Perform color correction
-        if self.ai_thresholds_received:
-            image = self.ai.apply_color_balance(
-                self.anti_instagram_thresholds["lower"],
-                self.anti_instagram_thresholds["higher"],
-                image
-            )
+        # if self.ai_thresholds_received:
+        #     image = self.ai.apply_color_balance(
+        #         self.anti_instagram_thresholds["lower"],
+        #         self.anti_instagram_thresholds["higher"],
+        #         image
+        #     )
         
-        image = cv2.resize(image, (224,224))
-        bboxes, classes, scores = self.model_wrapper.predict(image)
+        # image = cv2.resize(image, (224,224))
+        self.img_size = image.shape[:2]
+
+        bboxes, classes, scores = self.model_wrapper.predict([image])
+
+        img_boxes = self._draw_boxes(image, bboxes[0], classes[0])
+
+        self.image_publish.publish(self.bridge.cv2_to_imgmsg(img_boxes, encoding="rgb8"))
         
         msg = BoolStamped()
         msg.header = image_msg.header
         msg.data = self.det2bool(bboxes[0], classes[0]) # [0] because our batch size given to the wrapper is 1
+
+        bboxes = self._resize_boxes(bboxes) # return boxes are for image 224x224, but in the processing 480x640 size boxes are used
         
         self.pub_obj_dets.publish(msg)
+
+        return bboxes, classes, scores
     
     def det2bool(self, bboxes, classes):
-        # TODO remove these debugging prints
-        print(bboxes)
-        print(classes)
-        
-        # This is a dummy solution, remove this next line
-        return len(bboxes) > 1
-    
-        
-        # TODO filter the predictions: the environment here is a bit different versus the data collection environment, and your model might output a bit
-        # of noise. For example, you might see a bunch of predictions with x1=223.4 and x2=224, which makes
-        # no sense. You should remove these. 
-        
-        # TODO also filter detections which are outside of the road, or too far away from the bot. Only return True when there's a pedestrian (aka a duckie)
-        # in front of the bot, which you know the bot will have to avoid. A good heuristic would be "if centroid of bounding box is in the center of the image, 
-        # assume duckie is in the road" and "if bouding box's area is more than X pixels, assume duckie is close to us"
-        
-        
         obj_det_list = []
         for i in range(len(bboxes)):
             x1, y1, x2, y2 = bboxes[i]
             label = classes[i]
-            
-            # TODO if label isn't a duckie, skip
-            # TODO if detection is a pedestrian in front of us:
-            #   return True
+            if label==0:
+                low_center = Vector2D((x1 + x2)/2.0/self.img_size[1], y2/self.img_size[0])
+                norm_pt = Point.from_message(low_center)
+                pixel = self.ground_projector.vector2pixel(norm_pt)
+                rect = self.rectifier.rectify_point(pixel)
+                rect_pt = Point.from_message(rect)
+                ground_pt = self.ground_projector.pixel2ground(rect_pt)
+                
+                dist = np.sqrt(ground_pt.x**2 + ground_pt.y**2)
+                print(ground_pt.x, ground_pt.y)
 
+                if dist < self.safe_distance:
+                    print(ground_pt.x, ground_pt.y)
+                    rospy.logwarn("Pedestrian ahead, in unsafe distance, stop!")
+                    return True
+
+        return False
+
+    def _resize_boxes(self, bboxes):
+        resize_boxes = []
+        for boxes in bboxes:
+            boxes = boxes*np.array([224.0/self.img_size[1], 224/self.img_size[0], 224/self.img_size[1], 224/self.img_size[0]])
+            resize_boxes.append(boxes)
+        
+        return resize_boxes
+
+    def _draw_boxes(self, image, bboxes, classes):
+        img =  PIL_Image.fromarray(image.copy())
+        draw_obj = ImageDraw.Draw(img)
+        colors = {0: 'red', 1:'blue', 2:'green', 3:'black'}
+        for box, clss in zip(bboxes, classes):
+            draw_obj.rectangle(box, outline=colors[clss])
+        
+        return np.array(img)
 
 
 if __name__ == "__main__":

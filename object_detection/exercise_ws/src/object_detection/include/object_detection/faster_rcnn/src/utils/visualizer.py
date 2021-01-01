@@ -1,4 +1,5 @@
 import numpy as np
+import os
 from PIL import Image, ImageDraw
 import matplotlib
 matplotlib.use('agg')
@@ -86,16 +87,6 @@ class Visualizer(object):
 
         return ax
 
-    def draw_proposals(self):
-        ax = self.output.add_subplot(2,2,3)
-        ax.imshow(self.image.copy())
-        for proposal in self.proposals:
-            box_cords = proposal.proposal_boxes
-            box = patches.Rectangle(box_cords[:2], box_cords[2]-box_cords[0], box_cords[3]-box_cords[1], linewidth=1, fill=False, edgecolor='r')
-            ax.add_patch(box)
-
-        return ax
-
     def get_image(self):
         np_img = fig2data(self.output)
         plt.close()
@@ -103,7 +94,7 @@ class Visualizer(object):
 
     def save(self, direc):
         # plt.show()
-        plt.savefig(direc+self.path[-11:-4]+".png")
+        plt.savefig(os.path.join(direc, os.path.split(self.path)[1])[:-4]+".png")
         plt.close()
 
     def show(self):

@@ -165,7 +165,7 @@ class General_Solver(object):
             drop_last=True)
 
         val_loader = torch.utils.data.DataLoader(val_dataset,
-                                                 batch_size=batch_size,
+                                                 batch_size=1,
                                                  shuffle=False,
                                                  collate_fn=dataset.collate_fn,
                                                  drop_last=True)
@@ -305,7 +305,8 @@ class General_Solver(object):
     def test(self):
         self.model.eval()
         self.is_training = False
-        evaluator = Evaluator(3)
+        # evaluator = Evaluator(4)
+        evaluator = Evaluator(2)
         print("--- Running Inference")
 
         starter, ender = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
@@ -334,7 +335,7 @@ class General_Solver(object):
                 starter.record()
                 rpn_proposals, instances, proposal_losses, detector_losses = self.model(
                     in_images, targets, self.is_training)
-                print(time.time() - start)
+                print("CPU TIME: " ,time.time() - start)
                 ender.record()
                 torch.cuda.synchronize()
                 curr_time = starter.elapsed_time(ender)

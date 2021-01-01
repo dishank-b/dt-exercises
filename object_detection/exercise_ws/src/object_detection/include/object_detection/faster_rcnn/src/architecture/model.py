@@ -6,10 +6,10 @@ import sys
 import torch
 import torch.nn as nn
 
-from src.backbone import Backbone
-from src.rpn import RPN
-from src.detection import Detector
-from src.tracker import MultiObjTracker
+from ..backbone import Backbone
+from ..rpn import RPN
+from ..detection import Detector
+from ..tracker import MultiObjTracker
 
 
 class FasterRCNN(nn.Module):

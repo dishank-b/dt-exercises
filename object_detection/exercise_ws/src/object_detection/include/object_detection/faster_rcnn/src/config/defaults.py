@@ -1,7 +1,7 @@
 '''
 Contains default params for object detector
 '''
-from yacs.config import CfgNode as CN
+from .yacs.config import CfgNode as CN
 
 
 conf_params = CN()
@@ -30,8 +30,8 @@ conf_params.TRAIN.DATASET_DIVIDE = 0.9
 
 conf_params.INPUT = CN()
 # conf_params.INPUT.IMAGE_SIZE = (375,1242) #h,w
-conf_params.INPUT.LABELS_TO_TRAIN = ['Cones', 'Duckies', 'Duckiebots']
-conf_params.INPUT.NUM_CLASSES = 3
+conf_params.INPUT.LABELS_TO_TRAIN = []
+conf_params.INPUT.NUM_CLASSES = 0
 
 
 """

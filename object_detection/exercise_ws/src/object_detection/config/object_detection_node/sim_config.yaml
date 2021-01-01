@@ -1,0 +1,48 @@
+# Config file for your experiments, this will overwrite/merge your default.py config file
+
+DATASET:
+  NAME: "DuckieDataset"
+  # PATH: "../dataset/sim_data"
+  PATH: "../dataset/real_data"
+  LENGTH: 7500
+
+ARCHITECTURE:
+  MODEL: "FasterRCNN"
+
+BACKBONE:
+  MODEL_NAME: 'resnet18'
+  
+LOGS:
+  BASE_PATH: "../exercise_ws/src/object_detection/include/object_detection/weights"
+
+SEED: 5
+USE_CUDA: True
+
+TRAIN:
+  BATCH_SIZE: 1
+  EPOCHS: 50
+  LR: 1e-3
+  LR_DECAY: 0.2
+  MOMENTUM: 0.9
+  MILESTONES: (25,40,50)
+  DSET_SHUFFLE: True
+  SAVE_MODEL_EPOCHS: 5
+  DATASET_DIVIDE: 0.9
+
+ANCHORS:
+  ANCHOR_SCALES: [32, 64, 128]
+
+RPN:
+  POST_NMS_TOPK_TEST: 50
+
+INPUT:
+  LABELS_TO_TRAIN: ['Duckie', 'Cone', 'Truck', 'Bus']
+  NUM_CLASSES: 4
+
+ROI_HEADS:
+  LOSS_TYPE: "deterministic"
+  SCORE_THRESH_TEST: 0.7
+
+SOLVER:
+  OPTIM: "adam"
+

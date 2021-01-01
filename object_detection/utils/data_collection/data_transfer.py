@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-
 import json
 import os
 import cv2
@@ -26,11 +25,6 @@ def save_npz(img, boxes, classes):
 for filename in os.listdir(f"{DATASET_PATH}/real_data/duckietown object detection dataset/frames"):
     img = cv2.imread(f"{DATASET_PATH}/real_data/duckietown object detection dataset/frames/{filename}")
 
-    orig_y, orig_x = img.shape[0], img.shape[1]
-    scale_y, scale_x = 224/orig_y, 224/orig_x
-
-    img = cv2.resize(img, (224,224))
-
     boxes = []
     classes = []
 
@@ -45,14 +39,9 @@ for filename in os.listdir(f"{DATASET_PATH}/real_data/duckietown object detectio
             continue
 
         orig_x_min, orig_y_min, orig_w, orig_h = box
-
-        x_min = int(np.round(orig_x_min * scale_x))
-        y_min = int(np.round(orig_y_min * scale_y))
-        x_max = x_min + int(np.round(orig_w * scale_x))
-        y_max = y_min + int(np.round(orig_h * scale_y))
-
-        boxes.append([x_min, y_min, x_max, y_max])
-        classes.append(1 if label == "duckie" else 2)
+       
+        boxes.append([orig_x_min, orig_y_min, orig_x_min+orig_w, orig_y_min+orig_h])
+        classes.append(0 if label == "duckie" else 1)
 
     if len(boxes) == 0:
         continue
